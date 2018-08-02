@@ -1,0 +1,34 @@
+plugins {
+    id 'java'
+    id 'war'
+    id 'org.akhikhl.gretty' version '1.4.2'
+}
+
+group 'com.shearan'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    providedCompile 'javax.servlet:javax.servlet-api:3.1.0'
+
+    testCompile 'org.jmockit:jmockit:1.40'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    // https://mvnrepository.com/artifact/org.junit.contrib/junit-theories
+    testCompile group: 'org.junit.contrib', name: 'junit-theories', version: '4.12'
+    testCompile 'com.github.stefanbirkner:system-rules:1.18.0'
+
+    // https://mvnrepository.com/artifact/org.jmock/jmock-junit4
+    testCompile group: 'org.jmock', name: 'jmock-junit4', version: '2.8.4'
+
+    // https://mvnrepository.com/artifact/org.jmock/jmock-legacy
+    testCompile group: 'org.jmock', name: 'jmock-legacy', version: '2.8.4'
+}
+
+
