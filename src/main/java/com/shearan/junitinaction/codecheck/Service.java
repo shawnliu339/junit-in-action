@@ -1,7 +1,6 @@
 package com.shearan.junitinaction.codecheck;
 
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.LinkedList;
 import java.util.List;
@@ -22,6 +21,12 @@ public class Service {
 	public long standardWorkingTime = this
 			.toHours(Duration.between(this.standardStartTime, this.standardEndTime).toMinutes()) - this.breakTime;
 
+	private int workingOverTimeWithinLegal = 0;
+	private int workingOverTimeOutOfLegal = 0;
+	private int workingOverTimeAtNight = 0;
+	private int workingInWeekend = 0;
+	private int workingInHoliday = 0;
+
 	public static void calculate() { }
 
 	/**
@@ -38,14 +43,12 @@ public class Service {
 			int daySum = 0;
 			for (WorkingTime workingTime : data.times) {
 
-				long workingDuration = Duration.between(workingTime.startTime, workingTime.endTime).toMinutes();
+				long workingDuration = workingDurationMin(workingTime);
 				workingDuration = this.toHours(workingDuration);
 				int dayOfWeek = data.date.getDayOfWeek().getValue();
 
 				// 00:00 <= working time < 05:00
-				boolean isNextDay = (workingTime.startTime.isAfter(LocalTime.parse("00:00"))
-						|| workingTime.startTime.equals(LocalTime.parse("00:00")))
-						&& workingTime.startTime.isBefore(midnightWorkingEndTime);
+				boolean isNextDay = isNextDay(workingTime);
 
 				if (isNextDay && data.date.plusDays(1).getDayOfWeek().getValue() > 5) {
 					continue;
@@ -183,36 +186,65 @@ public class Service {
 	
 	/**
 	 * 休日労働時間数を計算する
-	 * @param datas
+	 * @param datas　计算数据
 	 * @param holidayList 休日リスト
-	 * @return
+	 * @return 休日的加班时间
 	 */
-	public int calculateWorkingInHoliday(List<Model> datas, List<Integer> holidayList) {
+	private int calculateWorkingInHoliday(List<Model> datas, List<Integer> holidayList) {
 		int workingOverTime = 0;
 
 		for (Model data : datas) {
-			for (WorkingTime workingTime : data.times) {
-				
-				int dayOfWeek = data.date.getDayOfWeek().getValue();
-				long workingDuration = Duration.between(workingTime.startTime, workingTime.endTime).toMinutes();
-				workingDuration = this.toHours(workingDuration);
-				
-				// 00:00 <= working time < 05:00
-				boolean isNextDay = (workingTime.startTime.isAfter(LocalTime.parse("00:00"))
-						|| workingTime.startTime.equals(LocalTime.parse("00:00")))
-						&& workingTime.startTime.isBefore(midnightWorkingEndTime);
-				
-				LocalDate nextDay = data.date.plusDays(1);
-				int nextDayOfWeek = nextDay.getDayOfWeek().getValue();
-				if (!isNextDay && holidayList.contains(dayOfWeek)
-						|| isNextDay && holidayList.contains(nextDayOfWeek)) {
-					workingOverTime += workingDuration;
-				}
-
-			}
-
-		}
+            for (WorkingTime workingTime : data.times) {
+		        data.setTimeInCalculating(workingTime);
+                if (isThisDayHoliday(data, holidayList)
+                        || isCrossDayHoliday(data, holidayList))
+                    workingOverTime += workingDurationHour(workingTime);
+            }
+        }
 		return workingOverTime;
+	}
+
+	/**
+	 * 判断当前工作时间是否跨日，且第二天是否为休日
+	 * @param data 计算数据
+	 * @param holidayList 休日列表
+	 * @return 如果为休日则返回true，否则返回false
+	 */
+	private boolean isCrossDayHoliday(Model data, List<Integer> holidayList) {
+		int nextDayOfWeek = data.getNextDay().getDayOfWeek().getValue();
+		return isNextDay(data.getTimeInCalculating()) && holidayList.contains(nextDayOfWeek);
+	}
+
+	/**
+	 * 判断当前工作时间是否为休日
+     * @param data 计算数据
+	 * @param holidayList 休日列表
+	 * @return 如果为休日则返回true，否则返回false
+	 */
+	private boolean isThisDayHoliday(Model data, List<Integer> holidayList) {
+		int dayOfWeek = data.getDayOfWeekValue();
+		return !isNextDay(data.getTimeInCalculating()) && holidayList.contains(dayOfWeek);
+	}
+
+	/**
+	 * 判断工作时间是否跨日
+	 * @param workingTime 工作时间对象
+	 * @return 如果该工作时间跨日则返回true，否则返回false
+	 */
+	private boolean isNextDay(WorkingTime workingTime) {
+		// 00:00 <= working time < 05:00
+		return (workingTime.startTime.isAfter(LocalTime.parse("00:00"))
+				|| workingTime.startTime.equals(LocalTime.parse("00:00")))
+				&& workingTime.startTime.isBefore(midnightWorkingEndTime);
+	}
+
+	/**
+	 * 计算工作的持续时间
+	 * @param workingTime 工作时间对象
+	 * @return 返回工作的持续时间（单位：分钟）
+	 */
+	private long workingDurationMin(WorkingTime workingTime) {
+		return Duration.between(workingTime.startTime, workingTime.endTime).toMinutes();
 	}
 
 	/**
@@ -240,6 +272,10 @@ public class Service {
 
 	private long toHours(long minute) {
 		return Math.round(minute / 60.0);
+	}
+
+	private long workingDurationHour(WorkingTime workingTime) {
+		return Math.round(workingDurationMin(workingTime) / 60.0);
 	}
 	
 	private boolean isMidnightTo5(LocalTime time) {

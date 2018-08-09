@@ -9,12 +9,26 @@ public class Model {
 
 	public LocalDate date;
 	public List<WorkingTime> times = new LinkedList<WorkingTime>();
+	private WorkingTime timeInCalculating;
 	
 	public Model() {
 	}
-	
+
+	public WorkingTime getTimeInCalculating() {
+		return timeInCalculating;
+	}
+
+	/**
+	 * 设置当前正在被计算的工作时间
+	 * @param timeInCalculating 正在被计算的工作时间
+	 */
+	public void setTimeInCalculating(WorkingTime timeInCalculating) {
+		this.timeInCalculating = timeInCalculating;
+	}
+
 	public Model(LocalDate date, List<WorkingTime> times) {
 		this.date = date;
+
 		this.times = times;
 	}
 
@@ -22,6 +36,23 @@ public class Model {
 	public String toString() {
 		return "Model [date=" + date + ", times=" + times + "]";
 	}
+
+	/**
+	 * 获取日期对应星期的对应数字
+	 * @return
+	 */
+	public int getDayOfWeekValue() {
+		return date.getDayOfWeek().getValue();
+	}
+
+	/**
+	 * 获取当日的下一天
+	 * @return 返回当日下一天的日期对象
+	 */
+	public LocalDate getNextDay() {
+		return date.plusDays(1);
+	}
+
 
 }
 
